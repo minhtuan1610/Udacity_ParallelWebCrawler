@@ -1,7 +1,6 @@
 package com.udacity.webcrawler;
 
 import com.udacity.webcrawler.json.CrawlResult;
-import com.udacity.webcrawler.parser.PageParser;
 import com.udacity.webcrawler.parser.PageParserFactory;
 
 import javax.inject.Inject;
@@ -10,7 +9,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ForkJoinPool;
 import java.util.regex.Pattern;
 
@@ -53,8 +52,21 @@ final class ParallelWebCrawler implements WebCrawler {
 	@Override
 	public CrawlResult crawl(List<String> startingUrls) {
 		Instant deadline = clock.instant().plus(timeout);
-		ConcurrentMap<String, Integer> concurrentMap = new ConcurrentHashMap<>();
-		return new CrawlResult.Builder().build();
+		ConcurrentHashMap<String, Integer> concurrentMap = new ConcurrentHashMap<>();
+		// If URL is visited, the method will skip
+		ConcurrentSkipListSet<String> concurrentSkipListSet = new ConcurrentSkipListSet<>();
+		for (String url : startingUrls) {
+			pool.invoke(new CrawlInternalParallel(url, deadline, maxDepth, clock, parserFactory, concurrentMap, concurrentSkipListSet, ignoreUrls));
+		}
+		if (concurrentMap.isEmpty()) {
+			return new CrawlResult.Builder()
+					.setWordCounts(concurrentMap)
+					.setUrlsVisited(concurrentSkipListSet.size())
+					.build();
+		}
+		return new CrawlResult.Builder()
+				.setWordCounts(WordCounts.sort(concurrentMap, popularWordCount))
+				.setUrlsVisited(concurrentSkipListSet.size()).build();
 	}
 
 	@Override
