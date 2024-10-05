@@ -48,6 +48,8 @@ final class ProfilingMethodInterceptor implements InvocationHandler {
 			invokedObj = method.invoke(delegate, args);
 		} catch (InvocationTargetException ex) {
 			throw ex.getTargetException();
+		} catch (IllegalArgumentException e) {
+			throw new RuntimeException(); // To ensure that proxy does not throw UndeclaredThrowableException
 		} finally {
 			if (profiled) {
 				Duration duration = Duration.between(startInstant, clock.instant());
