@@ -46,10 +46,15 @@ public class CrawlInternalParallel extends RecursiveTask<Boolean> {
 			}
 		}
 
-		if (visitedUrls.contains(url)) {
+		/*if (visitedUrls.contains(url)) {
 			return false;
 		} else {
 			visitedUrls.add(url);
+		}*/
+
+		// Make thread-safe
+		if (!visitedUrls.add(url)) {
+			return false;
 		}
 
 		PageParser.Result result = parserFactory.get(url).parse();
